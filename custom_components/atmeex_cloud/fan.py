@@ -74,13 +74,13 @@ class AtmeexFanEntity(AtmeexBaseEntity, FanEntity):
             speed_index = SPEEDS.index(speed_name)
             await self._async_set_fan_speed(speed_index, power_on=not self.is_on)
         elif not self.is_on:
-            await self._async_call_with_auth_check(self.device.set_power_only(True))
+            await self._async_call_with_auth_check(self._async_set_params(u_pwr_on=True))
 
         self._sync_update()
 
     async def async_turn_off(self, **kwargs):
         """Turn off the fan."""
-        await self._async_call_with_auth_check(self.device.set_power_only(False))
+        await self._async_call_with_auth_check(self._async_set_params(u_pwr_on=False))
         self._sync_update()
 
     def _update_state(self):

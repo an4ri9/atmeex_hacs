@@ -60,12 +60,12 @@ class AtmeexPowerSwitchEntity(AtmeexBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Turn on the breezer."""
-        await self._async_call_with_auth_check(self.device.set_power_and_damp(True, 0))
+        await self._async_call_with_auth_check(self._async_set_params(u_pwr_on=True, u_damp_pos=0))
         self._sync_update()
 
     async def async_turn_off(self, **kwargs):
         """Turn off the breezer."""
-        await self._async_call_with_auth_check(self.device.set_power_and_damp(False, 2))
+        await self._async_call_with_auth_check(self._async_set_params(u_pwr_on=False, u_damp_pos=2))
         self._sync_update()
 
     def _update_state(self):

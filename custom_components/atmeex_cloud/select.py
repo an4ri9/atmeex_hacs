@@ -59,7 +59,7 @@ class AtmeexDamperSelectEntity(AtmeexBaseEntity, SelectEntity):
             _LOGGER.error("Unknown damper option: %s", option)
             return
 
-        await self._async_call_with_auth_check(self.device.set_damp_pos(damp_pos))
+        await self._async_call_with_auth_check(self._async_set_params(u_damp_pos=damp_pos))
         self._sync_update()
 
     @property

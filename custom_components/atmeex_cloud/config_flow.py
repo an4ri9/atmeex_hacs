@@ -6,11 +6,12 @@ import httpx
 from atmeexpy.client import AtmeexClient
 from atmeexpy.exceptions import AtmeexAuthError
 
-from homeassistant.config_entries import ConfigFlow, ConfigEntry, SOURCE_REAUTH
+from homeassistant.config_entries import ConfigFlow, ConfigEntry, OptionsFlowWithReload, SOURCE_REAUTH
 from homeassistant.const import CONF_PASSWORD, CONF_EMAIL
+from homeassistant.core import callback
 from homeassistant.helpers.httpx_client import create_async_httpx_client
 from homeassistant.helpers.selector import SelectSelector, SelectSelectorConfig, SelectSelectorMode
-from .const import DOMAIN, CONF_ACCESS_TOKEN, CONF_REFRESH_TOKEN
+from .const import DOMAIN, CONF_ACCESS_TOKEN, CONF_CLOUD_RELAY, CONF_LOCAL_SERVER, CONF_REFRESH_TOKEN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,6 +59,13 @@ STEP_PHONE_CODE_DATA_SCHEMA = vol.Schema(
     },
 )
 
+OPTIONS_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_LOCAL_SERVER, default=False): bool,
+        vol.Required(CONF_CLOUD_RELAY, default=True): bool,
+    },
+)
+
 
 class AtmeexConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for atmeex cloud."""
@@ -68,6 +76,11 @@ class AtmeexConfigFlow(ConfigFlow, domain=DOMAIN):
         """Initialize config flow."""
         self._phone: str = ""
         self._client: AtmeexClient | None = None
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> "AtmeexOptionsFlow":
+        return AtmeexOptionsFlow()
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step - select auth method."""
@@ -206,4 +219,17 @@ class AtmeexConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="reauth_confirm",
             description_placeholders={"account": account},
+        )
+
+
+class AtmeexOptionsFlow(OptionsFlowWithReload):
+    """Handle options."""
+
+    async def async_step_init(self, user_input=None):
+        if user_input is not None:
+            return self.async_create_entry(data=user_input)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(OPTIONS_SCHEMA, self.config_entry.options),
         )

@@ -15,6 +15,7 @@ A Home Assistant integration to control Airnanny A7 breathers through the Atmeex
 - Humidifier: off or stage 1–3, "No water" sensor (on models with a humidifier)
 - Auto mode and night mode
 - Authorization via email + password, or via phone number with SMS one-time code
+- Local mode: breezers work with Home Assistant without the Atmeex cloud
 
 ## Supported Devices
 
@@ -153,3 +154,40 @@ You can open the damper with the fan turned off. This allows natural ventilation
 **Method 3 (via Switch + Select):**
 1. Turn off Switch (will close the damper)
 2. Set damper to "Supply" via Select (will open damper without turning on fan)
+
+## Local mode (no cloud)
+
+Breezers keep a TCP connection to the Atmeex cloud (`ws.iot.atmeex.com`, port 3001) and exchange JSON messages with it. The integration can accept these connections itself: the breezers then work even when the cloud is down, and readings arrive as soon as a breezer sends them (usually every 5 seconds). Home Assistant can also relay the breezers' messages to the cloud and back, so the Atmeex app keeps working.
+
+1. Turn on "Local server for breezers" in the integration options (**Settings → Devices & services → Atmeex Cloud → Configure**). Home Assistant starts listening on TCP port 3001. "Atmeex cloud connection through Home Assistant" is on by default.
+2. Make the router redirect the breezers' connections to port 3001 to Home Assistant. Breezers and Home Assistant are usually on the same network, so hairpin NAT is needed too, otherwise the breezer gets the reply from the wrong address. Example for MikroTik (replace `<...>` with the addresses of the breezer and Home Assistant; add other breezers to the same list):
+
+   ```
+   /ip firewall address-list
+   add list=atmeex-breezers address=<breezer IP>
+   /ip firewall nat
+   add chain=dstnat src-address-list=atmeex-breezers protocol=tcp dst-port=3001 action=dst-nat to-addresses=<Home Assistant IP> to-ports=3001 comment=atmeex-local
+   add chain=srcnat src-address-list=atmeex-breezers dst-address=<Home Assistant IP> protocol=tcp dst-port=3001 action=masquerade comment=atmeex-local
+   ```
+
+   Don't add Home Assistant's own address to the list: its own cloud connections would come back to it. A breezer connects to Home Assistant the next time it reconnects (after a reboot or when its cloud connection drops).
+
+Good to know:
+
+- The integration takes the device list from the cloud and keeps a copy, so it has to reach the cloud successfully once. After that local mode works without it.
+- With the cloud connection on, Home Assistant keeps a cloud connection for each connected breezer: the Atmeex app sees the readings and controls the breezer as before, and changes from the app and from Home Assistant reach each other through the breezer. When the cloud is down, the breezers keep working with Home Assistant, and once the cloud is back Home Assistant connects them to it on its own. Without the cloud connection, breezers connected to Home Assistant are offline in the app.
+- Home Assistant becomes a link between the breezers and the cloud: while it is off or restarting, the breezers can't reach the cloud either. The router can lift the redirect while Home Assistant isn't ready for the breezers, so they connect to the cloud directly. Example for MikroTik (the rules from the example above are marked `comment=atmeex-local`): one check notices a frozen Home Assistant (the web UI doesn't answer), the other notices that the local server isn't listening, for example while Home Assistant is starting. The redirect is on only while both are fine:
+
+  ```
+  /tool netwatch
+  add comment=atmeex-ha-web type=http-get host=<Home Assistant IP> port=8123 interval=30s timeout=10s down-script="/system script run atmeex-local-off" up-script="/system script run atmeex-local-on"
+  add comment=atmeex-ha-local type=tcp-conn host=<Home Assistant IP> port=3001 interval=30s timeout=5s down-script="/system script run atmeex-local-off" up-script="/system script run atmeex-local-on"
+  /system script
+  add name=atmeex-local-off source="/ip firewall nat disable [find comment=atmeex-local]; /ip firewall connection remove [find protocol=tcp dst-port=3001]"
+  add name=atmeex-local-on source=":if ([/tool netwatch get [find comment=atmeex-ha-web] status]=\"up\" && [/tool netwatch get [find comment=atmeex-ha-local] status]=\"up\") do={/ip firewall nat enable [find comment=atmeex-local]; /ip firewall connection remove [find protocol=tcp dst-port=3001]}"
+  ```
+
+  Dropping the connections makes the breezers reconnect right away instead of at the next break.
+- To move the breezers back to the cloud directly, remove the router rules and turn the local server off.
+- Commands go straight to the breezer; breezers not connected to Home Assistant are still controlled through the cloud.
+- The server only accepts breezers from your account, but without a password: any device on the local network can pretend to be a breezer. Don't expose port 3001 to the internet.

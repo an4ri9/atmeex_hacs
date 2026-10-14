@@ -15,6 +15,7 @@
 - Увлажнитель: выключен или ступень 1–3, датчик «Нет воды» (на моделях с увлажнителем)
 - Авторежим и ночной режим
 - Авторизация по email + пароль, либо по номеру телефона с одноразовым кодом из СМС
+- Локальный режим: бризеры работают с Home Assistant без облака Atmeex
 
 ## Поддерживаемые устройства
 
@@ -153,3 +154,40 @@
 **Способ 3 (через Switch + Select):**
 1. Выключите Switch (закроет заслонку)
 2. Установите заслонку в "Приток" через Select (откроет заслонку без включения вентилятора)
+
+## Локальный режим (без облака)
+
+Бризеры держат TCP-соединение с облаком Atmeex (`ws.iot.atmeex.com`, порт 3001) и обмениваются с ним JSON-сообщениями. Интеграция может сама принимать эти соединения — тогда бризеры работают, даже когда облако недоступно, а показания приходят сразу, как только бризер их присылает (обычно раз в 5 секунд). При этом Home Assistant может пересылать сообщения бризеров в облако и обратно, и приложение Atmeex продолжает работать.
+
+1. Включите в параметрах интеграции (**Настройки → Устройства и службы → Atmeex Cloud → Настроить**) «Локальный сервер для бризеров». Home Assistant начнёт слушать TCP-порт 3001. «Связь с облаком Atmeex через Home Assistant» включена по умолчанию.
+2. Перенаправьте на роутере подключения бризеров к порту 3001 на Home Assistant. Бризеры и Home Assistant обычно в одной сети, поэтому нужен ещё hairpin NAT, иначе бризер получит ответ не с того адреса. Пример для MikroTik (вместо `<...>` подставьте адреса бризера и Home Assistant; остальные бризеры добавьте в тот же список):
+
+   ```
+   /ip firewall address-list
+   add list=atmeex-breezers address=<IP бризера>
+   /ip firewall nat
+   add chain=dstnat src-address-list=atmeex-breezers protocol=tcp dst-port=3001 action=dst-nat to-addresses=<IP Home Assistant> to-ports=3001 comment=atmeex-local
+   add chain=srcnat src-address-list=atmeex-breezers dst-address=<IP Home Assistant> protocol=tcp dst-port=3001 action=masquerade comment=atmeex-local
+   ```
+
+   Адрес самого Home Assistant в список не добавляйте: его собственные соединения с облаком вернутся к нему же. Бризер подключится к Home Assistant при следующем переподключении (после перезагрузки бризера или обрыва связи с облаком).
+
+Что нужно знать:
+
+- Список устройств интеграция берёт из облака и сохраняет у себя, поэтому один раз она должна успешно связаться с облаком. Дальше локальный режим работает и без него.
+- Со связью с облаком Home Assistant держит соединение с облаком за каждый подключённый бризер: приложение Atmeex видит показания и управляет бризером как раньше, а изменения из приложения и из Home Assistant доходят друг до друга через бризер. Если облако недоступно, бризеры продолжают работать с Home Assistant, а когда облако вернётся, Home Assistant сам их к нему подключит. Без связи с облаком бризеры, подключённые к Home Assistant, в приложении не в сети.
+- Home Assistant становится звеном между бризерами и облаком: пока он выключен или перезагружается, бризеры не связаны и с облаком. Роутер может снимать перенаправление, пока Home Assistant не готов принимать бризеры, — тогда они подключаются к облаку напрямую. Пример для MikroTik (правила из примера выше помечены `comment=atmeex-local`): одна проверка замечает зависший Home Assistant (веб-интерфейс не отвечает), другая — что локальный сервер не слушает порт, например пока Home Assistant загружается. Перенаправление включается, только когда обе в порядке:
+
+  ```
+  /tool netwatch
+  add comment=atmeex-ha-web type=http-get host=<IP Home Assistant> port=8123 interval=30s timeout=10s down-script="/system script run atmeex-local-off" up-script="/system script run atmeex-local-on"
+  add comment=atmeex-ha-local type=tcp-conn host=<IP Home Assistant> port=3001 interval=30s timeout=5s down-script="/system script run atmeex-local-off" up-script="/system script run atmeex-local-on"
+  /system script
+  add name=atmeex-local-off source="/ip firewall nat disable [find comment=atmeex-local]; /ip firewall connection remove [find protocol=tcp dst-port=3001]"
+  add name=atmeex-local-on source=":if ([/tool netwatch get [find comment=atmeex-ha-web] status]=\"up\" && [/tool netwatch get [find comment=atmeex-ha-local] status]=\"up\") do={/ip firewall nat enable [find comment=atmeex-local]; /ip firewall connection remove [find protocol=tcp dst-port=3001]}"
+  ```
+
+  Сброс соединений заставляет бризеры переподключиться сразу, а не при следующем обрыве.
+- Чтобы вернуть бризеры напрямую в облако, удалите правила на роутере и выключите локальный сервер.
+- Команды идут в бризер напрямую; бризеры, не подключённые к Home Assistant, по-прежнему управляются через облако.
+- Сервер принимает только бризеры из вашего аккаунта, но без пароля: любое устройство в локальной сети может выдать себя за бризер. Не открывайте порт 3001 наружу.

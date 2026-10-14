@@ -1,6 +1,8 @@
 DOMAIN = "atmeex_cloud"
 CONF_ACCESS_TOKEN = "access_token"
 CONF_REFRESH_TOKEN = "refresh_token"
+CONF_LOCAL_SERVER = "local_server"
+CONF_CLOUD_RELAY = "cloud_relay"
 
 PLATFORMS = [
     "binary_sensor",

@@ -61,6 +61,21 @@
             "reauth_successful": "Re-authentication was successful"
         }
     },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Atmeex options",
+                "description": "The local server accepts breezers instead of the Atmeex cloud, so they work without it. The router has to redirect their cloud connections (TCP port 3001) to Home Assistant, see README.",
+                "data": {
+                    "local_server": "Local server for breezers (port 3001)",
+                    "cloud_relay": "Atmeex cloud connection through Home Assistant"
+                },
+                "data_description": {
+                    "cloud_relay": "Home Assistant keeps a cloud connection for each connected breezer, so the Atmeex app keeps working. Without it such breezers are offline in the app."
+                }
+            }
+        }
+    },
     "selector": {
         "auth_method": {
             "options": {

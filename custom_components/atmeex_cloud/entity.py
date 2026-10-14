@@ -113,11 +113,10 @@ class AtmeexBaseEntity(CoordinatorEntity):
         self.coordinator.async_update_listeners()
 
     async def _async_set_params(self, **params: Any) -> None:
-        """Set device params that atmeexpy has no setters for."""
-        resp = await self.coordinator.api.http_client.put(f"/devices/{self.device_id}/params", json=params)
-        resp.raise_for_status()
+        """Change device settings, named like in the cloud API (u_pwr_on, u_fan_speed and so on)."""
+        await self.coordinator.async_set_params(self.device, params)
 
-        # Show the new values right away, the next poll brings the values stored in the cloud
+        # Show the new values right away, the next update brings what the device has
         for key, value in params.items():
             setattr(self.device.model.settings, key, value)
 
@@ -139,6 +138,7 @@ class AtmeexBaseEntity(CoordinatorEntity):
             raise HomeAssistantError(
                 "Authentication expired. Please reconfigure the integration."
             ) from err
-        except (httpx.HTTPError, ValueError) as err:
-            # ValueError: atmeexpy setters parse the response, which may be a non-JSON error page
+        except (httpx.HTTPError, OSError, ValueError) as err:
+            # OSError: a breezer connected to the local server dropped the connection;
+            # ValueError: a non-JSON reply to the token refresh
             raise HomeAssistantError(f"Communication error: {type(err).__name__} {err}") from err
