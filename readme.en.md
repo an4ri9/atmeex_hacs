@@ -191,3 +191,12 @@ Good to know:
 - To move the breezers back to the cloud directly, remove the router rules and turn the local server off.
 - Commands go straight to the breezer; breezers not connected to Home Assistant are still controlled through the cloud.
 - The server only accepts breezers from your account, but without a password: any device on the local network can pretend to be a breezer. Don't expose port 3001 to the internet.
+
+## Tests
+
+The tests run the integration in a real Home Assistant (`pytest-homeassistant-custom-component`) against a fake Atmeex cloud. Python 3.14 is required:
+
+```sh
+pip install -r requirements_test.txt
+pytest
+```
