@@ -8,7 +8,7 @@ import logging
 from dacite import DaciteError
 
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -88,7 +88,11 @@ class AtmeexDataCoordinator(DataUpdateCoordinator):
                 raise
 
             if isinstance(err, ConfigEntryAuthFailed):
+                if not self._reauth_flows():
+                    _LOGGER.warning("Atmeex cloud rejected the saved sign-in, asking to sign in again")
                 self.entry.async_start_reauth(self.hass)
+            else:
+                self._async_abort_reauth()
             if self._cloud_available:
                 _LOGGER.warning("Atmeex cloud unavailable, only breezers connected to Home Assistant work: %s", err)
             self._cloud_available = False
@@ -100,6 +104,16 @@ class AtmeexDataCoordinator(DataUpdateCoordinator):
             await self._async_store_devices()
 
         self._build_devices()
+
+    def _reauth_flows(self) -> list:
+        return list(self.entry.async_get_active_flows(self.hass, {SOURCE_REAUTH}))
+
+    @callback
+    def _async_abort_reauth(self):
+        """Signing in is impossible while the cloud doesn't answer, its next refusal asks again."""
+        for flow in self._reauth_flows():
+            _LOGGER.warning("Atmeex cloud unavailable, withdrawing the sign-in request until it answers")
+            self.hass.config_entries.flow.async_abort(flow["flow_id"])
 
     async def _async_fetch_cloud(self) -> tuple[list[dict], dict[int, dict]]:
         try:

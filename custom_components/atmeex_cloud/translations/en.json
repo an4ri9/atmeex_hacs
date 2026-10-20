@@ -53,6 +53,7 @@
             "auth": "Authentication failed. Please check your credentials.",
             "sms_send_failed": "Failed to send SMS code. Please check your phone number.",
             "invalid_code": "Invalid SMS code. Please try again.",
+            "cannot_connect": "Atmeex cloud is unavailable. Please try again later.",
             "unknown": "Unexpected error occurred"
         },
         "abort": {

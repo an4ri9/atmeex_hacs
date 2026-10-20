@@ -130,6 +130,9 @@ class AtmeexConfigFlow(ConfigFlow, domain=DOMAIN):
             except (AtmeexAuthError, httpx.HTTPStatusError) as exc:
                 _LOGGER.exception("Email authentication failed")
                 errors["base"] = "auth"
+            except httpx.TransportError as err:
+                _LOGGER.warning("Atmeex cloud unavailable: %s %s", type(err).__name__, err)
+                errors["base"] = "cannot_connect"
 
         return self.async_show_form(
             step_id="email", data_schema=STEP_EMAIL_DATA_SCHEMA, errors=errors
@@ -149,6 +152,9 @@ class AtmeexConfigFlow(ConfigFlow, domain=DOMAIN):
             except (AtmeexAuthError, httpx.HTTPStatusError) as exc:
                 _LOGGER.exception("Failed to send SMS code")
                 errors["base"] = "sms_send_failed"
+            except httpx.TransportError as err:
+                _LOGGER.warning("Atmeex cloud unavailable: %s %s", type(err).__name__, err)
+                errors["base"] = "cannot_connect"
 
         return self.async_show_form(
             step_id="phone", data_schema=STEP_PHONE_DATA_SCHEMA, errors=errors
@@ -188,6 +194,9 @@ class AtmeexConfigFlow(ConfigFlow, domain=DOMAIN):
             except (AtmeexAuthError, httpx.HTTPStatusError) as exc:
                 _LOGGER.exception("Phone authentication failed")
                 errors["base"] = "invalid_code"
+            except httpx.TransportError as err:
+                _LOGGER.warning("Atmeex cloud unavailable: %s %s", type(err).__name__, err)
+                errors["base"] = "cannot_connect"
 
         return self.async_show_form(
             step_id="phone_code",
