@@ -80,6 +80,18 @@ def _time_zone() -> str:
     return f"{sign}{abs(minutes) // 60:02d}:{abs(minutes) % 60:02d}"
 
 
+def device_mac(device_id: str) -> str:
+    """Cloud MAC from a breezer id.
+
+    The TCP hello appends ``:0`` to the six octets stored by the cloud API,
+    for example ``3C:8A:1F:58:D0:2C:0``.
+    """
+    device_id = device_id.upper()
+    if device_id.count(":") == 6 and device_id.endswith(":0"):
+        return device_id[:-2]
+    return device_id
+
+
 def _encode(message: dict) -> bytes:
     return json.dumps(message, separators=(",", ":")).encode()
 
@@ -212,8 +224,8 @@ class AtmeexLocalServer:
             writer.close()
             if session is not None and session.cloud_task is not None:
                 session.cloud_task.cancel()
-            if session is not None and self.sessions.get(session.device_id) is session:
-                del self.sessions[session.device_id]
+            if session is not None and self.sessions.get(device_mac(session.device_id)) is session:
+                del self.sessions[device_mac(session.device_id)]
                 _LOGGER.info("Breezer %s disconnected", session.device_id)
                 self._on_update()
 
@@ -231,7 +243,7 @@ class AtmeexLocalServer:
                 self._stop_relaying("the router sends Home Assistant's own connections to the cloud back to it")
                 return None
 
-            if not self._is_known(device_id):
+            if not self._is_known(device_mac(device_id)):
                 _LOGGER.warning("Closing connection from unknown device %s", device_id)
                 return None
 
@@ -257,9 +269,10 @@ class AtmeexLocalServer:
         return session
 
     def _register(self, device_id: str, writer: asyncio.StreamWriter) -> AtmeexLocalSession:
+        mac = device_mac(device_id)
         _LOGGER.info("Breezer %s connected from %s", device_id, writer.get_extra_info("peername"))
         session = AtmeexLocalSession(device_id, writer)
-        if (old := self.sessions.get(device_id)) is not None:
+        if (old := self.sessions.get(mac)) is not None:
             # The breezer reconnected; the cloud drops the old connection too.
             # Keep what it reported so far, so that its entities don't blink unavailable
             old.close()
@@ -267,7 +280,7 @@ class AtmeexLocalServer:
             session.state = old.state
             session.fw_ver = old.fw_ver
 
-        self.sessions[device_id] = session
+        self.sessions[mac] = session
         return session
 
     async def _async_handle_hello(self, session: AtmeexLocalSession, hello: dict) -> None:

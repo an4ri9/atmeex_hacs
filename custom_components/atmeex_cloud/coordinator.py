@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .atmeex_api import AtmeexAuthError, AtmeexClient, Device
 
 from .const import CONF_ACCESS_TOKEN, CONF_CLOUD_RELAY, CONF_REFRESH_TOKEN, DOMAIN, ZERO_MEANS_MISSING
-from .local import LOCAL_PORT, AtmeexLocalServer, AtmeexLocalSession
+from .local import LOCAL_PORT, AtmeexLocalServer, AtmeexLocalSession, device_mac
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -179,10 +179,11 @@ class AtmeexDataCoordinator(DataUpdateCoordinator):
         self.conditions = conditions
 
     def _local_session(self, mac: str) -> AtmeexLocalSession | None:
-        return self.local.sessions.get(mac.upper()) if self.local is not None else None
+        return self.local.sessions.get(device_mac(mac)) if self.local is not None else None
 
     def _is_known_device(self, mac: str) -> bool:
-        return any(data["mac"].upper() == mac for data in self._cloud_devices)
+        mac = device_mac(mac)
+        return any(device_mac(data["mac"]) == mac for data in self._cloud_devices)
 
     @callback
     def _async_local_update(self):

@@ -2,10 +2,10 @@
   "domain": "atmeex_cloud",
   "name": "Atmeex cloud",
   "dependencies": [],
-  "documentation": "http://github.com/anpavlov/atmeex_hacs",
+  "documentation": "https://github.com/an4ri9/atmeex_hacs",
   "requirements": [],
-  "codeowners": ["@anpavlov"],
-  "issue_tracker": "http://github.com/anpavlov/atmeex_hacs/issues",
+  "codeowners": ["@an4ri9"],
+  "issue_tracker": "https://github.com/an4ri9/atmeex_hacs/issues",
   "config_flow": true,
-  "version": "1.0.2"
+  "version": "1.0.3"
 }
