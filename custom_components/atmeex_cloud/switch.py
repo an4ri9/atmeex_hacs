@@ -36,7 +36,12 @@ MODE_SWITCHES = (
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities):
     coordinator: AtmeexDataCoordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    async_add_entities([AtmeexPowerSwitchEntity(device, coordinator) for device in coordinator.devices.values()])
+    async_add_entities(
+        AtmeexPowerSwitchEntity(device, coordinator) for device in coordinator.devices.values()
+    )
+    async_add_entities(
+        AtmeexPassiveSwitchEntity(device, coordinator) for device in coordinator.devices.values()
+    )
     async_add_entities(
         AtmeexModeSwitchEntity(device, coordinator, description)
         for device in coordinator.devices.values()
@@ -119,7 +124,7 @@ class AtmeexPassiveSwitchEntity(AtmeexBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Fan off, damper open."""
-        await self._async_call_with_auth_check(self.device.set_power_and_damp(False, 0))
+        await self._async_call_with_auth_check(self._async_set_params(u_pwr_on=False, u_damp_pos=0))
         self._sync_update()
 
     async def async_turn_off(self, **kwargs):
@@ -127,7 +132,7 @@ class AtmeexPassiveSwitchEntity(AtmeexBaseEntity, SwitchEntity):
         if not self.is_on:
             return
 
-        await self._async_call_with_auth_check(self.device.set_damp_pos(2))
+        await self._async_call_with_auth_check(self._async_set_params(u_damp_pos=2))
         self._sync_update()
 
     def _update_state(self):

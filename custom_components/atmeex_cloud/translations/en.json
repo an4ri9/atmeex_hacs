@@ -167,6 +167,9 @@
             },
             "night_mode": {
                 "name": "Night mode"
+            },
+            "passive": {
+                "name": "Passive ventilation"
             }
         }
     }

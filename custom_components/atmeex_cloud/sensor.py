@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PERCENTAGE, UnitOfRatio, UnitOfTemperature
 
-from atmeexpy.device import Device
+from .atmeex_api import Device
 
 from .coordinator import AtmeexDataCoordinator
 from .entity import AtmeexBaseEntity, async_add_entities_when_reported

@@ -4,7 +4,7 @@ from homeassistant.components.binary_sensor import BinarySensorDeviceClass, Bina
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
-from atmeexpy.device import Device
+from .atmeex_api import Device
 
 from .coordinator import AtmeexDataCoordinator
 from .entity import AtmeexBaseEntity, async_add_entities_when_reported

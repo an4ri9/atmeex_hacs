@@ -5,17 +5,13 @@ import httpx
 from datetime import timedelta
 import logging
 
-from dacite import DaciteError
-
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from atmeexpy.client import AtmeexClient
-from atmeexpy.device import Device
-from atmeexpy.exceptions import AtmeexAuthError
+from .atmeex_api import AtmeexAuthError, AtmeexClient, Device
 
 from .const import CONF_ACCESS_TOKEN, CONF_CLOUD_RELAY, CONF_REFRESH_TOKEN, DOMAIN, ZERO_MEANS_MISSING
 from .local import LOCAL_PORT, AtmeexLocalServer, AtmeexLocalSession
@@ -61,7 +57,7 @@ class AtmeexDataCoordinator(DataUpdateCoordinator):
         try:
             for data in stored:
                 Device(self.api.http_client, copy.deepcopy(data))
-        except (TypeError, KeyError, AttributeError, DaciteError) as err:
+        except (TypeError, KeyError, AttributeError, ValueError) as err:
             _LOGGER.warning("Ignoring stored devices: %s", err)
         else:
             self._cloud_devices = stored
@@ -130,7 +126,7 @@ class AtmeexDataCoordinator(DataUpdateCoordinator):
             raise ConfigEntryAuthFailed from err
         except httpx.HTTPError as err:
             raise UpdateFailed(f"Error communicating with API: {type(err).__name__} {err}") from err
-        except (ValueError, TypeError, KeyError, AttributeError, DaciteError) as err:
+        except (ValueError, TypeError, KeyError, AttributeError) as err:
             raise UpdateFailed(f"Unexpected API response: {err}") from err
         finally:
             # Tokens may be refreshed during the request even if the response turns out unusable
@@ -171,7 +167,7 @@ class AtmeexDataCoordinator(DataUpdateCoordinator):
             if session is not None and session.ready:
                 data["settings"].update(session.settings)
                 data["online"] = True
-                data["fw_ver"] = session.fw_ver or data["fw_ver"]
+                data["fw_ver"] = session.fw_ver or data.get("fw_ver")
                 condition = session.state
             elif not self._cloud_available:
                 data["online"] = False
