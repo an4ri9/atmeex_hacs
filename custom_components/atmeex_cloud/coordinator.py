@@ -9,8 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from atmeexpy.client import AtmeexClient
-from atmeexpy.exceptions import AtmeexAuthError
+from .atmeex_api import AtmeexAuthError, AtmeexClient
 
 from .const import CONF_ACCESS_TOKEN, CONF_REFRESH_TOKEN
 

@@ -9,8 +9,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from atmeexpy.device import Device
-from atmeexpy.exceptions import AtmeexAuthError
+from .atmeex_api import AtmeexAuthError, Device
 
 from .coordinator import AtmeexDataCoordinator
 from .const import DOMAIN
