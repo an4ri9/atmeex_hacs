@@ -8,7 +8,7 @@ from homeassistant.util.percentage import (
     percentage_to_ordered_list_item,
 )
 
-from atmeexpy.device import Device
+from .atmeex_api import Device
 
 from .coordinator import AtmeexDataCoordinator
 from .entity import AtmeexBaseEntity

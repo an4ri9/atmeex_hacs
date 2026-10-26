@@ -4,7 +4,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.httpx_client import create_async_httpx_client
 
-from atmeexpy.client import AtmeexClient
+from .atmeex_api import AtmeexClient
 
 from .const import CONF_ACCESS_TOKEN, CONF_REFRESH_TOKEN, DOMAIN, PLATFORMS
 from .coordinator import AtmeexDataCoordinator

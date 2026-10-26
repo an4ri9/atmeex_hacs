@@ -5,7 +5,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import PRECISION_HALVES, UnitOfTemperature, ATTR_TEMPERATURE
 
-from atmeexpy.device import Device
+from .atmeex_api import Device
 
 from .coordinator import AtmeexDataCoordinator
 from .entity import AtmeexBaseEntity

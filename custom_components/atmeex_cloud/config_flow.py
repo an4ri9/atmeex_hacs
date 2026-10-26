@@ -3,8 +3,7 @@ from typing import Any
 
 import voluptuous as vol
 import httpx
-from atmeexpy.client import AtmeexClient
-from atmeexpy.exceptions import AtmeexAuthError
+from .atmeex_api import AtmeexAuthError, AtmeexClient
 
 from homeassistant.config_entries import ConfigFlow, ConfigEntry, SOURCE_REAUTH
 from homeassistant.const import CONF_PASSWORD, CONF_EMAIL

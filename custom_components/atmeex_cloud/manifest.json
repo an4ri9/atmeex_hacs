@@ -3,11 +3,9 @@
   "name": "Atmeex cloud",
   "dependencies": [],
   "documentation": "http://github.com/anpavlov/atmeex_hacs",
-  "requirements": [
-    "atmeexpy==0.4.0"
-  ],
+  "requirements": [],
   "codeowners": ["@anpavlov"],
   "issue_tracker": "http://github.com/anpavlov/atmeex_hacs/issues",
   "config_flow": true,
-  "version": "1.0.0"
+  "version": "1.0.1"
 }

@@ -4,7 +4,7 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 
-from atmeexpy.device import Device
+from .atmeex_api import Device
 
 from .coordinator import AtmeexDataCoordinator
 from .entity import AtmeexBaseEntity
@@ -16,7 +16,12 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities):
     coordinator: AtmeexDataCoordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    async_add_entities([AtmeexPowerSwitchEntity(device, coordinator) for device in coordinator.devices.values()])
+    entities = []
+    for device in coordinator.devices.values():
+        entities.append(AtmeexPowerSwitchEntity(device, coordinator))
+        entities.append(AtmeexPassiveSwitchEntity(device, coordinator))
+
+    async_add_entities(entities)
 
 
 class AtmeexPowerSwitchEntity(AtmeexBaseEntity, SwitchEntity):
@@ -41,6 +46,39 @@ class AtmeexPowerSwitchEntity(AtmeexBaseEntity, SwitchEntity):
     async def async_turn_off(self, **kwargs):
         """Turn off the breezer."""
         await self._async_call_with_auth_check(self.device.set_power_and_damp(False, 2))
+        self._sync_update()
+
+    def _update_state(self):
+        pass
+
+
+class AtmeexPassiveSwitchEntity(AtmeexBaseEntity, SwitchEntity):
+    """Open the damper and keep the fan off."""
+
+    _attr_icon = "mdi:window-open"
+    _attr_translation_key = "passive"
+
+    def __init__(self, device: Device, coordinator: AtmeexDataCoordinator):
+        super().__init__(device, coordinator)
+
+        self._attr_unique_id = f"{device.model.id}_passive"
+
+    @property
+    def is_on(self) -> bool:
+        settings = self.device.model.settings
+        return (not settings.u_pwr_on) and settings.u_damp_pos == 0
+
+    async def async_turn_on(self, **kwargs):
+        """Fan off, damper open."""
+        await self._async_call_with_auth_check(self.device.set_power_and_damp(False, 0))
+        self._sync_update()
+
+    async def async_turn_off(self, **kwargs):
+        """Leave passive mode by closing the damper. Do not stop a running fan."""
+        if not self.is_on:
+            return
+
+        await self._async_call_with_auth_check(self.device.set_damp_pos(2))
         self._sync_update()
 
     def _update_state(self):
