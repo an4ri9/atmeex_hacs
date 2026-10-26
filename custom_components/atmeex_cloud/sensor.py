@@ -9,7 +9,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfRatio, UnitOfTemperature
+from homeassistant.const import PERCENTAGE, UnitOfTemperature
 
 from .atmeex_api import Device
 
@@ -54,7 +54,7 @@ SENSORS = (
         translation_key="co2_ppm",
         device_class=SensorDeviceClass.CO2,
         state_class=SensorStateClass.MEASUREMENT,
-        native_unit_of_measurement=UnitOfRatio.PARTS_PER_MILLION,
+        native_unit_of_measurement="ppm",
     ),
 )
 
